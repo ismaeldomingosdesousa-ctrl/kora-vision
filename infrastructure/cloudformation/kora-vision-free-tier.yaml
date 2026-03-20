@@ -284,7 +284,7 @@ Resources:
           Value: database
 
   # ============================================================================
-  # S3 Bucket for Frontend
+  # S3 Bucket for Frontend (Private - sem BucketPolicy pública)
   # ============================================================================
 
   FrontendBucket:
@@ -294,11 +294,6 @@ Resources:
       BucketName: !Sub 'kora-vision-frontend-${AWS::AccountId}'
       VersioningConfiguration:
         Status: Enabled
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
       Tags:
         - Key: Name
           Value: kora-vision-frontend
@@ -312,66 +307,3 @@ Resources:
           Value: !Ref Owner
         - Key: ResourceType
           Value: storage
-
-  FrontendBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    DeletionPolicy: Delete
-    Properties:
-      Bucket: !Ref FrontendBucket
-      PolicyText:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: PublicRead
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Sub '${FrontendBucket.Arn}/*'
-
-  # ============================================================================
-  # CloudFront Distribution
-  # ============================================================================
-
-  CloudFrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    DeletionPolicy: Delete
-    Properties:
-      DistributionConfig:
-        Enabled: true
-        DefaultRootObject: index.html
-        Origins:
-          - DomainName: !GetAtt FrontendBucket.RegionalDomainName
-            Id: S3Origin
-        DefaultCacheBehavior:
-          AllowedMethods:
-            - GET
-            - HEAD
-          CachedMethods:
-            - GET
-            - HEAD
-          TargetOriginId: S3Origin
-          ForwardedValues:
-            QueryString: false
-            Cookies:
-              Forward: none
-          ViewerProtocolPolicy: redirect-to-https
-          MinTTL: 0
-          DefaultTTL: 3600
-          MaxTTL: 86400
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: none
-        ViewerCertificate:
-          CloudFrontDefaultCertificate: true
-      Tags:
-        - Key: Name
-          Value: kora-vision-cdn
-        - Key: CostCenter
-          Value: !Ref CostCenter
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-        - Key: ResourceType
-          Value: cdn
