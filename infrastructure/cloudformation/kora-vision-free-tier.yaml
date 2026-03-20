@@ -22,6 +22,37 @@ Parameters:
     MinLength: 8
     MaxLength: 41
 
+  CostCenter:
+    Type: String
+    Default: kora-vision
+    Description: Cost center for billing and cost tracking
+    MinLength: 1
+    MaxLength: 50
+
+  Environment:
+    Type: String
+    Default: mvp
+    Description: Environment name for resource identification
+    AllowedValues:
+      - dev
+      - staging
+      - mvp
+      - production
+
+  Project:
+    Type: String
+    Default: kora-vision
+    Description: Project name for resource grouping
+    MinLength: 1
+    MaxLength: 50
+
+  Owner:
+    Type: String
+    Default: admin
+    Description: Owner/Team responsible for the resources
+    MinLength: 1
+    MaxLength: 50
+
 Resources:
   # ============================================================================
   # VPC and Networking
@@ -36,6 +67,16 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-vpc
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: CreatedDate
+          Value: !Sub '${AWS::StackName}'
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -202,6 +243,16 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-backend
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: ResourceType
+          Value: compute
 
   # ============================================================================
   # RDS PostgreSQL (t3.micro - Free-Tier)
@@ -241,6 +292,16 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-postgres
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: ResourceType
+          Value: database
 
   # ============================================================================
   # S3 Bucket for Frontend
@@ -260,6 +321,16 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-frontend
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: ResourceType
+          Value: storage
 
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -311,6 +382,16 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-cdn
+        - Key: CostCenter
+          Value: !Ref CostCenter
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+        - Key: ResourceType
+          Value: cdn
 
 Outputs:
   EC2PublicIP:
