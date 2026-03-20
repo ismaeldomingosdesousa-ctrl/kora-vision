@@ -71,7 +71,7 @@ Resources:
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-0c55b159cbfafe1f0
+      ImageId: !Sub 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       SecurityGroupIds:
