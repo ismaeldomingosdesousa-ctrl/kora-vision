@@ -60,6 +60,7 @@ Resources:
 
   KoraVPC:
     Type: AWS::EC2::VPC
+    DeletionPolicy: Delete
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsHostnames: true
@@ -80,6 +81,7 @@ Resources:
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+    DeletionPolicy: Delete
     Properties:
       Tags:
         - Key: Name
@@ -93,6 +95,7 @@ Resources:
 
   PublicSubnet:
     Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
     Properties:
       VpcId: !Ref KoraVPC
       CidrBlock: 10.0.1.0/24
@@ -104,6 +107,7 @@ Resources:
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
+    DeletionPolicy: Delete
     Properties:
       VpcId: !Ref KoraVPC
       CidrBlock: 10.0.2.0/24
@@ -114,6 +118,7 @@ Resources:
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
+    DeletionPolicy: Delete
     Properties:
       VpcId: !Ref KoraVPC
       Tags:
@@ -140,26 +145,23 @@ Resources:
 
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Delete
     Properties:
       GroupDescription: Security group for EC2 instance
       VpcId: !Ref KoraVPC
       SecurityGroupIngress:
-        # SSH
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        # HTTP
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        # HTTPS
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
-        # Backend ports
         - IpProtocol: tcp
           FromPort: 8000
           ToPort: 8003
@@ -173,6 +175,7 @@ Resources:
 
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    DeletionPolicy: Delete
     Properties:
       GroupDescription: Security group for RDS PostgreSQL
       VpcId: !Ref KoraVPC
@@ -194,6 +197,7 @@ Resources:
 
   EC2Instance:
     Type: AWS::EC2::Instance
+    DeletionPolicy: Delete
     Properties:
       ImageId: !Sub 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
       InstanceType: t2.micro
@@ -260,6 +264,7 @@ Resources:
 
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
+    DeletionPolicy: Delete
     Properties:
       DBSubnetGroupDescription: Subnet group for Kora Vision RDS
       SubnetIds:
@@ -309,6 +314,7 @@ Resources:
 
   FrontendBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
     Properties:
       BucketName: !Sub 'kora-vision-frontend-${AWS::AccountId}'
       VersioningConfiguration:
@@ -334,6 +340,7 @@ Resources:
 
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Delete
     Properties:
       Bucket: !Ref FrontendBucket
       PolicyText:
@@ -351,6 +358,7 @@ Resources:
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
+    DeletionPolicy: Delete
     Properties:
       DistributionConfig:
         Enabled: true
