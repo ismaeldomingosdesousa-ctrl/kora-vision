@@ -87,13 +87,6 @@ Resources:
         - Key: Name
           Value: kora-vision-igw
 
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    DeletionPolicy: Retain
-    Properties:
-      VpcId: !Ref KoraVPC
-      InternetGatewayId: !Ref InternetGateway
-
   PublicSubnet:
     Type: AWS::EC2::Subnet
     DeletionPolicy: Delete
@@ -129,7 +122,6 @@ Resources:
   PublicRoute:
     Type: AWS::EC2::Route
     DeletionPolicy: Retain
-    DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
