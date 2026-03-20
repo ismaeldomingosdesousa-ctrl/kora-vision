@@ -198,27 +198,6 @@ Resources:
           git clone https://github.com/ismaeldomingosdesousa-ctrl/kora-vision.git
           cd kora-vision
           
-          # Setup backend
-          cd backend
-          python3.11 -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          
-          # Setup environment variables
-          cat > .env << 'ENVEOF'
-          DATABASE_URL=postgresql://${DBMasterUsername}:${DBMasterPassword}@${DBEndpoint}:5432/koravision
-          REDIS_URL=redis://localhost:6379
-          JWT_SECRET_KEY=kora-vision-secret-key-change-in-production
-          COGNITO_USER_POOL_ID=us-east-1_xxxxx
-          COGNITO_CLIENT_ID=xxxxx
-          COGNITO_CLIENT_SECRET=xxxxx
-          ENVEOF
-          
-          # Run migrations
-          cd migrations
-          alembic upgrade head
-          cd ..
-          
           echo "✅ Setup concluído!"
       Tags:
         - Key: Name
@@ -259,8 +238,6 @@ Resources:
       BackupRetentionPeriod: 7
       MultiAZ: false
       StorageEncrypted: false
-      EnableCloudwatchLogsExports:
-        - postgresql
       Tags:
         - Key: Name
           Value: kora-vision-postgres
