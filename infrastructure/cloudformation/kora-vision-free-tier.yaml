@@ -89,7 +89,7 @@ Resources:
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     Properties:
       VpcId: !Ref KoraVPC
       InternetGatewayId: !Ref InternetGateway
@@ -128,7 +128,7 @@ Resources:
 
   PublicRoute:
     Type: AWS::EC2::Route
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
@@ -137,7 +137,7 @@ Resources:
 
   SubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    DeletionPolicy: Delete
+    DeletionPolicy: Retain
     Properties:
       SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
