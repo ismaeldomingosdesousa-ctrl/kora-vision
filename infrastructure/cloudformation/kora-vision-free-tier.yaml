@@ -76,8 +76,6 @@ Resources:
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-        - Key: CreatedDate
-          Value: !Sub '${AWS::StackName}'
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -86,6 +84,13 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DeletionPolicy: Retain
+    Properties:
+      VpcId: !Ref KoraVPC
+      InternetGatewayId: !Ref InternetGateway
 
   PublicSubnet:
     Type: AWS::EC2::Subnet
@@ -122,6 +127,7 @@ Resources:
   PublicRoute:
     Type: AWS::EC2::Route
     DeletionPolicy: Retain
+    DependsOn: AttachGateway
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
@@ -204,40 +210,14 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           set -e
-          
           echo "🚀 Iniciando setup do Kora Vision..."
-          
-          # Update system
           yum update -y
-          
-          # Install Python 3.11
           amazon-linux-extras install python3.11 -y
-          
-          # Install Node.js 22
           curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
-          yum install -y nodejs
-          
-          # Install PostgreSQL client
-          yum install -y postgresql15
-          
-          # Install Git
-          yum install -y git
-          
-          # Install Docker
-          amazon-linux-extras install docker -y
+          yum install -y nodejs postgresql15 git docker
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ec2-user
-          
-          # Install Docker Compose
-          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          
-          # Clone repository
-          cd /home/ec2-user
-          git clone https://github.com/ismaeldomingosdesousa-ctrl/kora-vision.git
-          cd kora-vision
-          
           echo "✅ Setup concluído!"
       Tags:
         - Key: Name
@@ -395,5 +375,3 @@ Resources:
           Value: !Ref Owner
         - Key: ResourceType
           Value: cdn
-
-
