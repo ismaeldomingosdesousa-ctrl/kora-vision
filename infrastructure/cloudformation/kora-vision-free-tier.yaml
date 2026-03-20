@@ -255,7 +255,7 @@ Resources:
     Properties:
       DBInstanceIdentifier: kora-vision-db
       Engine: postgres
-      EngineVersion: '15.3'
+      EngineVersion: '15.4'
       DBInstanceClass: db.t3.micro
       AllocatedStorage: '20'
       StorageType: gp2
