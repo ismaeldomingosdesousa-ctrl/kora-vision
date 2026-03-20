@@ -1,0 +1,397 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Kora Vision - AWS Free-Tier Infrastructure (Zero Cost MVP)'
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 Key Pair to enable SSH access
+    ConstraintDescription: Must be the name of an existing EC2 Key Pair
+
+  DBMasterUsername:
+    Type: String
+    Default: admin
+    Description: Master username for RDS PostgreSQL
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS PostgreSQL (min 8 characters)
+    MinLength: 8
+    MaxLength: 41
+
+Resources:
+  # ============================================================================
+  # VPC and Networking
+  # ============================================================================
+
+  KoraVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: kora-vision-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: kora-vision-igw
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref KoraVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref KoraVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: kora-vision-public-subnet
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref KoraVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: kora-vision-private-subnet
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref KoraVPC
+      Tags:
+        - Key: Name
+          Value: kora-vision-public-rt
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # ============================================================================
+  # Security Groups
+  # ============================================================================
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EC2 instance
+      VpcId: !Ref KoraVPC
+      SecurityGroupIngress:
+        # SSH
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        # HTTP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # HTTPS
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        # Backend ports
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8003
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: kora-vision-ec2-sg
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref KoraVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: kora-vision-rds-sg
+
+  # ============================================================================
+  # EC2 Instance (t2.micro - Free-Tier)
+  # ============================================================================
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Sub 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          
+          echo "🚀 Iniciando setup do Kora Vision..."
+          
+          # Update system
+          yum update -y
+          
+          # Install Python 3.11
+          amazon-linux-extras install python3.11 -y
+          
+          # Install Node.js 22
+          curl -fsSL https://rpm.nodesource.com/setup_22.x | bash -
+          yum install -y nodejs
+          
+          # Install PostgreSQL client
+          yum install -y postgresql15
+          
+          # Install Git
+          yum install -y git
+          
+          # Install Docker
+          amazon-linux-extras install docker -y
+          systemctl start docker
+          systemctl enable docker
+          usermod -aG docker ec2-user
+          
+          # Install Docker Compose
+          curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          
+          # Clone repository
+          cd /home/ec2-user
+          git clone https://github.com/ismaeldomingosdesousa-ctrl/kora-vision.git
+          cd kora-vision
+          
+          # Setup backend
+          cd backend
+          python3.11 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          
+          # Setup environment variables
+          cat > .env << 'ENVEOF'
+          DATABASE_URL=postgresql://${DBMasterUsername}:${DBMasterPassword}@${DBEndpoint}:5432/koravision
+          REDIS_URL=redis://localhost:6379
+          JWT_SECRET_KEY=kora-vision-secret-key-change-in-production
+          COGNITO_USER_POOL_ID=us-east-1_xxxxx
+          COGNITO_CLIENT_ID=xxxxx
+          COGNITO_CLIENT_SECRET=xxxxx
+          ENVEOF
+          
+          # Run migrations
+          cd migrations
+          alembic upgrade head
+          cd ..
+          
+          echo "✅ Setup concluído!"
+      Tags:
+        - Key: Name
+          Value: kora-vision-backend
+
+  # ============================================================================
+  # RDS PostgreSQL (t3.micro - Free-Tier)
+  # ============================================================================
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Kora Vision RDS
+      SubnetIds:
+        - !Ref PublicSubnet
+        - !Ref PrivateSubnet
+      Tags:
+        - Key: Name
+          Value: kora-vision-db-subnet-group
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      DBInstanceIdentifier: kora-vision-db
+      Engine: postgres
+      EngineVersion: '15.3'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: '20'
+      StorageType: gp2
+      DBName: koravision
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      PubliclyAccessible: true
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      StorageEncrypted: false
+      EnableCloudwatchLogsExports:
+        - postgresql
+      Tags:
+        - Key: Name
+          Value: kora-vision-postgres
+
+  # ============================================================================
+  # S3 Bucket for Frontend
+  # ============================================================================
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'kora-vision-frontend-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      Tags:
+        - Key: Name
+          Value: kora-vision-frontend
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyText:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicRead
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # ============================================================================
+  # CloudFront Distribution
+  # ============================================================================
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            Id: S3Origin
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+          MinTTL: 0
+          DefaultTTL: 3600
+          MaxTTL: 86400
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+      Tags:
+        - Key: Name
+          Value: kora-vision-cdn
+
+Outputs:
+  EC2PublicIP:
+    Description: Public IP of EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-EC2-PublicIP'
+
+  EC2InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub '${AWS::StackName}-EC2-InstanceId'
+
+  RDSEndpoint:
+    Description: RDS PostgreSQL endpoint
+    Value: !GetAtt RDSInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${AWS::StackName}-RDS-Endpoint'
+
+  RDSPort:
+    Description: RDS PostgreSQL port
+    Value: !GetAtt RDSInstance.Endpoint.Port
+    Export:
+      Name: !Sub '${AWS::StackName}-RDS-Port'
+
+  RDSDatabase:
+    Description: RDS Database name
+    Value: koravision
+    Export:
+      Name: !Sub '${AWS::StackName}-RDS-Database'
+
+  RDSUsername:
+    Description: RDS Master username
+    Value: !Ref DBMasterUsername
+    Export:
+      Name: !Sub '${AWS::StackName}-RDS-Username'
+
+  S3BucketName:
+    Description: S3 bucket name for frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-S3-Bucket'
+
+  CloudFrontDomainName:
+    Description: CloudFront distribution domain name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFront-Domain'
+
+  SSHCommand:
+    Description: SSH command to connect to EC2
+    Value: !Sub 'ssh -i /path/to/key.pem ec2-user@${EC2Instance.PublicIp}'
+    Export:
+      Name: !Sub '${AWS::StackName}-SSH-Command'
+
+  PSQLCommand:
+    Description: psql command to connect to RDS
+    Value: !Sub 'psql -h ${RDSInstance.Endpoint.Address} -U ${DBMasterUsername} -d koravision'
+    Export:
+      Name: !Sub '${AWS::StackName}-PSQL-Command'
