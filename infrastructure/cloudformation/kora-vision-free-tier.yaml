@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Kora Vision - AWS Free-Tier Infrastructure (Zero Cost MVP)'
+Description: 'Kora Vision - AWS Free-Tier Infrastructure (Ultra-Simplified MVP)'
 
 Parameters:
   KeyPairName:
@@ -22,134 +22,15 @@ Parameters:
     MinLength: 8
     MaxLength: 41
 
-  CostCenter:
-    Type: String
-    Default: kora-vision
-    Description: Cost center for billing and cost tracking
-    MinLength: 1
-    MaxLength: 50
-
-  Environment:
-    Type: String
-    Default: mvp
-    Description: Environment name for resource identification
-    AllowedValues:
-      - dev
-      - staging
-      - mvp
-      - production
-
-  Project:
-    Type: String
-    Default: kora-vision
-    Description: Project name for resource grouping
-    MinLength: 1
-    MaxLength: 50
-
-  Owner:
-    Type: String
-    Default: admin
-    Description: Owner/Team responsible for the resources
-    MinLength: 1
-    MaxLength: 50
-
 Resources:
   # ============================================================================
-  # VPC and Networking
-  # ============================================================================
-
-  KoraVPC:
-    Type: AWS::EC2::VPC
-    DeletionPolicy: Delete
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags:
-        - Key: Name
-          Value: kora-vision-vpc
-        - Key: CostCenter
-          Value: !Ref CostCenter
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    DeletionPolicy: Delete
-    Properties:
-      Tags:
-        - Key: Name
-          Value: kora-vision-igw
-
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    DeletionPolicy: Retain
-    Properties:
-      VpcId: !Ref KoraVPC
-      InternetGatewayId: !Ref InternetGateway
-
-  PublicSubnet:
-    Type: AWS::EC2::Subnet
-    DeletionPolicy: Delete
-    Properties:
-      VpcId: !Ref KoraVPC
-      CidrBlock: 10.0.1.0/24
-      AvailabilityZone: !Select [0, !GetAZs '']
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: kora-vision-public-subnet
-
-  PrivateSubnet:
-    Type: AWS::EC2::Subnet
-    DeletionPolicy: Delete
-    Properties:
-      VpcId: !Ref KoraVPC
-      CidrBlock: 10.0.2.0/24
-      AvailabilityZone: !Select [1, !GetAZs '']
-      Tags:
-        - Key: Name
-          Value: kora-vision-private-subnet
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    DeletionPolicy: Delete
-    Properties:
-      VpcId: !Ref KoraVPC
-      Tags:
-        - Key: Name
-          Value: kora-vision-public-rt
-
-  PublicRoute:
-    Type: AWS::EC2::Route
-    DeletionPolicy: Retain
-    DependsOn: AttachGateway
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  SubnetRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    DeletionPolicy: Retain
-    Properties:
-      SubnetId: !Ref PublicSubnet
-      RouteTableId: !Ref PublicRouteTable
-
-  # ============================================================================
-  # Security Groups
+  # Security Groups (using default VPC)
   # ============================================================================
 
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    DeletionPolicy: Delete
     Properties:
-      GroupDescription: Security group for EC2 instance
-      VpcId: !Ref KoraVPC
+      GroupDescription: Security group for Kora Vision EC2
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -176,10 +57,8 @@ Resources:
 
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    DeletionPolicy: Delete
     Properties:
-      GroupDescription: Security group for RDS PostgreSQL
-      VpcId: !Ref KoraVPC
+      GroupDescription: Security group for Kora Vision RDS
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
@@ -198,12 +77,10 @@ Resources:
 
   EC2Instance:
     Type: AWS::EC2::Instance
-    DeletionPolicy: Delete
     Properties:
       ImageId: !Sub 'resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
       InstanceType: t2.micro
       KeyName: !Ref KeyPairName
-      SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
         - !Ref EC2SecurityGroup
       UserData:
@@ -218,40 +95,19 @@ Resources:
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ec2-user
+          cd /home/ec2-user
+          git clone https://github.com/ismaeldomingosdesousa-ctrl/kora-vision.git
           echo "✅ Setup concluído!"
       Tags:
         - Key: Name
           Value: kora-vision-backend
-        - Key: CostCenter
-          Value: !Ref CostCenter
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-        - Key: ResourceType
-          Value: compute
 
   # ============================================================================
   # RDS PostgreSQL (t3.micro - Free-Tier)
   # ============================================================================
 
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    DeletionPolicy: Delete
-    Properties:
-      DBSubnetGroupDescription: Subnet group for Kora Vision RDS
-      SubnetIds:
-        - !Ref PublicSubnet
-        - !Ref PrivateSubnet
-      Tags:
-        - Key: Name
-          Value: kora-vision-db-subnet-group
-
   RDSInstance:
     Type: AWS::RDS::DBInstance
-    DeletionPolicy: Delete
     Properties:
       DBInstanceIdentifier: kora-vision-db
       Engine: postgres
@@ -262,7 +118,6 @@ Resources:
       DBName: koravision
       MasterUsername: !Ref DBMasterUsername
       MasterUserPassword: !Ref DBMasterPassword
-      DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups:
         - !Ref RDSSecurityGroup
       PubliclyAccessible: true
@@ -272,24 +127,13 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-postgres
-        - Key: CostCenter
-          Value: !Ref CostCenter
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-        - Key: ResourceType
-          Value: database
 
   # ============================================================================
-  # S3 Bucket for Frontend (Private - sem BucketPolicy pública)
+  # S3 Bucket for Frontend
   # ============================================================================
 
   FrontendBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
     Properties:
       BucketName: !Sub 'kora-vision-frontend-${AWS::AccountId}'
       VersioningConfiguration:
@@ -297,13 +141,32 @@ Resources:
       Tags:
         - Key: Name
           Value: kora-vision-frontend
-        - Key: CostCenter
-          Value: !Ref CostCenter
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-        - Key: ResourceType
-          Value: storage
+
+Outputs:
+  EC2PublicIP:
+    Description: Public IP of EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
+
+  EC2InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance
+
+  RDSEndpoint:
+    Description: RDS PostgreSQL endpoint
+    Value: !GetAtt RDSInstance.Endpoint.Address
+
+  RDSPort:
+    Description: RDS PostgreSQL port
+    Value: !GetAtt RDSInstance.Endpoint.Port
+
+  S3BucketName:
+    Description: S3 bucket name for frontend
+    Value: !Ref FrontendBucket
+
+  SSHCommand:
+    Description: SSH command to connect to EC2
+    Value: !Sub 'ssh -i /path/to/key.pem ec2-user@${EC2Instance.PublicIp}'
+
+  PSQLCommand:
+    Description: psql command to connect to RDS
+    Value: !Sub 'psql -h ${RDSInstance.Endpoint.Address} -U ${DBMasterUsername} -d koravision'
