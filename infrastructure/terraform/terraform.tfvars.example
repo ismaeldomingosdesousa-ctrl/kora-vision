@@ -1,0 +1,46 @@
+# AWS Configuration
+aws_region = "us-east-1"
+project_name = "unified-ops-hub"
+environment = "dev"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+
+# ALB Configuration
+enable_https = true
+acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# ECS Configuration
+ecs_desired_capacity = 3
+ecs_min_capacity = 2
+ecs_max_capacity = 10
+ecs_instance_type = "t3.medium"
+
+# RDS Configuration
+db_name = "unifiedopshub"
+db_username = "admin"
+db_password = "ChangeMe!SecurePassword123"
+db_engine_version = "15.3"
+db_instance_class = "db.serverless"
+db_backup_retention_period = 30
+db_multi_az = true
+
+# ElastiCache Redis Configuration
+redis_engine_version = "7.0"
+redis_node_type = "cache.t3.micro"
+redis_num_nodes = 3
+redis_automatic_failover = true
+
+# Domain Configuration
+domain_name = "example.com"
+
+# Secrets Configuration
+jwt_secret = "your-jwt-secret-key-here-change-in-production"
+cognito_client_id = "your-cognito-client-id"
+cognito_client_secret = "your-cognito-client-secret"
+
+# CloudWatch Configuration
+log_retention_days = 30
