@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: kora-vision-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-koravision}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: kora-vision-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Core API Service
+  core-api:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/core-api.Dockerfile
+    container_name: kora-vision-core-api
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-koravision}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn core-api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Webhook Ingestor Service
+  webhook-ingestor:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/webhook-ingestor.Dockerfile
+    container_name: kora-vision-webhook-ingestor
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-koravision}
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn webhook-ingestor.main:app --host 0.0.0.0 --port 8001 --reload
+
+  # Integration Worker Service
+  integration-worker:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/integration-worker.Dockerfile
+    container_name: kora-vision-integration-worker
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-koravision}
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn integration-worker.main:app --host 0.0.0.0 --port 8002 --reload
+
+  # Real-time Service (WebSocket)
+  realtime-service:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/realtime-service.Dockerfile
+    container_name: kora-vision-realtime-service
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-koravision}
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn realtime-service.main:app --host 0.0.0.0 --port 8003 --workers 1
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./unified-ops-hub-frontend
+      dockerfile: Dockerfile
+    container_name: kora-vision-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_WEBSOCKET_URL: ws://localhost:8003
+    depends_on:
+      - core-api
+    volumes:
+      - ./unified-ops-hub-frontend:/app
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: kora-vision-network
