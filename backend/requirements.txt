@@ -17,11 +17,6 @@ python-multipart==0.0.6
 PyJWT==2.12.1
 cryptography==41.0.7
 
-# AWS Integration
-boto3==1.29.7
-botocore==1.32.7
-aioboto3==12.0.0
-
 # HTTP & API
 httpx==0.25.2
 requests==2.31.0
@@ -31,7 +26,7 @@ aiohttp==3.9.1
 redis==5.0.1
 aioredis==2.0.1
 
-# Logging & Monitoring
+# Logging
 python-json-logger==2.0.7
 
 # Utilities
@@ -44,7 +39,6 @@ typer==0.9.0
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-cov==4.1.0
-httpx==0.25.2
 
 # Development
 black==23.12.0
