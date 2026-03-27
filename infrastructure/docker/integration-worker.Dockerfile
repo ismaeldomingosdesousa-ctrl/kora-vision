@@ -37,7 +37,6 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code
 COPY backend/shared ./shared
 COPY backend/integration-worker ./integration-worker
-COPY backend/migrations ./migrations
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
