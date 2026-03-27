@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kora Vision - Central Unificada de Operações</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -268,28 +267,10 @@
             color: #fca5a5;
         }
         
-        .integrations-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .integration-card {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        
-        .integration-card h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        
-        .integration-card p {
-            color: #94a3b8;
-            font-size: 0.9em;
-            margin-bottom: 15px;
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
         }
         
         .loading {
@@ -328,8 +309,10 @@
             border-radius: 12px;
             padding: 30px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         .modal-header {
@@ -348,6 +331,35 @@
             font-size: 1.5em;
             cursor: pointer;
         }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        th {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 12px;
+            text-align: left;
+            color: #667eea;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: #cbd5e1;
+        }
+        
+        tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
     </style>
 </head>
 <body>
@@ -359,8 +371,8 @@
         <div class="nav-item active" onclick="showContent('dashboard')">
             📊 Dashboard
         </div>
-        <div class="nav-item" onclick="showContent('integrations')">
-            🔗 Integrações
+        <div class="nav-item" onclick="showContent('jira-config')">
+            🔗 Configurar Jira
         </div>
         <div class="nav-item" onclick="showContent('settings')">
             ⚙️ Configurações
@@ -380,6 +392,7 @@
         
         <!-- Dashboard Content -->
         <div id="dashboard" class="content-visible">
+            <div id="dashboard-alert"></div>
             <div id="dashboard-loading" style="text-align: center; padding: 40px;">
                 <div class="loading" style="margin: 0 auto;"></div>
                 <p style="margin-top: 20px; color: #94a3b8;">Carregando dados...</p>
@@ -387,15 +400,41 @@
             <div id="dashboard-content" style="display: none;"></div>
         </div>
         
-        <!-- Integrations Content -->
-        <div id="integrations" class="content-hidden">
-            <h2 style="color: white; font-size: 1.5em; margin-bottom: 20px;">Gerenciar Integrações</h2>
+        <!-- Jira Config Content -->
+        <div id="jira-config" class="content-hidden">
+            <h2 style="color: white; font-size: 1.5em; margin-bottom: 20px;">Configurar Integração Jira</h2>
             
-            <button class="btn btn-primary" onclick="openAddIntegrationModal()" style="margin-bottom: 20px;">
-                + Adicionar Integração
-            </button>
-            
-            <div id="integrations-list" class="integrations-list"></div>
+            <div class="widget" style="max-width: 600px;">
+                <div id="jira-alert"></div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email Jira</label>
+                    <input type="email" id="jira-email" class="form-input" placeholder="seu.email@empresa.com" value="ismael.sousa@paytrack.com.br">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">API Token</label>
+                    <input type="password" id="jira-token" class="form-input" placeholder="Seu API Token">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Site URL (sem https://)</label>
+                    <input type="text" id="jira-site" class="form-input" placeholder="Ex: paytrack (para paytrack.atlassian.net)" value="paytrack">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Project Key</label>
+                    <input type="text" id="jira-project" class="form-input" placeholder="Ex: CLOUDOPS" value="CLOUDOPS">
+                </div>
+                
+                <button class="btn btn-primary" onclick="testJiraConnection()" style="margin-right: 10px;">
+                    🔍 Testar Conexão
+                </button>
+                
+                <button class="btn btn-secondary" onclick="saveJiraConfig()">
+                    💾 Salvar Configuração
+                </button>
+            </div>
         </div>
         
         <!-- Settings Content -->
@@ -403,19 +442,9 @@
             <h2 style="color: white; font-size: 1.5em; margin-bottom: 20px;">Configurações</h2>
             
             <div class="widget" style="max-width: 600px;">
-                <div class="widget-title">Preferências do Sistema</div>
-                
                 <div class="form-group">
                     <label class="form-label">Intervalo de Atualização (segundos)</label>
                     <input type="number" id="refresh-interval" class="form-input" value="300" min="60">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Tema</label>
-                    <select class="form-input">
-                        <option>Escuro (Padrão)</option>
-                        <option>Claro</option>
-                    </select>
                 </div>
                 
                 <button class="btn btn-primary">Salvar Configurações</button>
@@ -423,398 +452,259 @@
         </div>
     </div>
     
-    <!-- Add Integration Modal -->
-    <div id="add-integration-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span>Adicionar Integração</span>
-                <button class="close-btn" onclick="closeAddIntegrationModal()">×</button>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Tipo de Integração</label>
-                <select id="integration-type" class="form-input" onchange="updateIntegrationForm()">
-                    <option value="">Selecione...</option>
-                    <option value="jira">Jira Service Manager</option>
-                    <option value="google_chat">Google Chat</option>
-                    <option value="gmail">Gmail</option>
-                    <option value="google_calendar">Google Agenda</option>
-                    <option value="datadog">Datadog</option>
-                    <option value="dynatrace">Dynatrace</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Nome da Integração</label>
-                <input type="text" id="integration-name" class="form-input" placeholder="Ex: Jira - Produção">
-            </div>
-            
-            <div id="integration-fields"></div>
-            
-            <button class="btn btn-primary" onclick="saveIntegration()" style="width: 100%; margin-top: 20px;">
-                Adicionar
-            </button>
-        </div>
-    </div>
-    
     <script>
         const API_BASE = "http://localhost:8000";
+        let jiraConfig = null;
         let refreshInterval = 300;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            loadJiraConfig();
             loadDashboard();
             setInterval(loadDashboard, refreshInterval * 1000);
         });
         
         function showContent(contentId) {
-            document.querySelectorAll('[id^="dashboard"], [id^="integrations"], [id^="settings"]').forEach(el => {
+            // Hide all content
+            document.querySelectorAll('[id^="dashboard"], [id^="jira-config"], [id^="settings"]').forEach(el => {
                 if (el.id === contentId) {
                     el.classList.remove('content-hidden');
                     el.classList.add('content-visible');
-                } else {
+                } else if (!el.id.includes('-alert') && !el.id.includes('-loading') && !el.id.includes('-content')) {
                     el.classList.add('content-hidden');
                     el.classList.remove('content-visible');
                 }
             });
             
+            // Update nav items
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active');
             });
-            event.target.classList.add('active');
-            
-            if (contentId === 'integrations') {
-                loadIntegrations();
+            event.target.closest('.nav-item').classList.add('active');
+        }
+        
+        function loadJiraConfig() {
+            const config = localStorage.getItem('jiraConfig');
+            if (config) {
+                jiraConfig = JSON.parse(config);
+                document.getElementById('jira-email').value = jiraConfig.email || '';
+                document.getElementById('jira-site').value = jiraConfig.site_url || '';
+                document.getElementById('jira-project').value = jiraConfig.project_key || '';
             }
         }
         
-        async function loadDashboard() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/dashboard/unified`);
-                const data = await response.json();
-                
-                let html = '';
-                
-                // Jira Widget
-                if (data.jira && data.jira.issues) {
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">📋 Jira Service Manager</div>
-                            <div class="widget-content">
-                                <div class="metric">
-                                    <span class="metric-label">Chamados (Requests)</span>
-                                    <span class="metric-value">${data.jira.issues.total_requests || 0}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Incidentes</span>
-                                    <span class="metric-value">${data.jira.issues.total_incidents || 0}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Em Risco de SLA</span>
-                                    <span class="metric-value" style="color: #fca5a5;">${data.jira.sla_at_risk?.length || 0}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Volume Diário</span>
-                                    <span class="metric-value">${data.jira.metrics?.daily || 0}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Volume Semanal</span>
-                                    <span class="metric-value">${data.jira.metrics?.weekly || 0}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Volume Mensal</span>
-                                    <span class="metric-value">${data.jira.metrics?.monthly || 0}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Gmail Widget
-                if (data.gmail) {
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">📧 Gmail</div>
-                            <div class="widget-content">
-                                <div class="metric">
-                                    <span class="metric-label">Emails Não Lidos</span>
-                                    <span class="metric-value" style="color: #fde047;">${data.gmail.unread_count || 0}</span>
-                                </div>
-                                <div style="margin-top: 15px; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 15px;">
-                                    <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 10px;">Últimos Emails:</p>
-                                    ${(data.gmail.recent_emails || []).slice(0, 3).map(email => `
-                                        <div style="padding: 5px 0; font-size: 0.85em; color: #cbd5e1;">
-                                            • ${email.subject}
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Google Calendar Widget
-                if (data.google_calendar) {
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">📅 Google Agenda</div>
-                            <div class="widget-content">
-                                <div style="margin-bottom: 10px;">
-                                    <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 10px;">Eventos de Hoje:</p>
-                                    ${(data.google_calendar.events || []).length > 0 ? 
-                                        (data.google_calendar.events || []).slice(0, 3).map(event => `
-                                            <div style="padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px; margin-bottom: 8px;">
-                                                <div style="color: #667eea; font-weight: bold; font-size: 0.9em;">${event.title}</div>
-                                                <div style="color: #94a3b8; font-size: 0.85em;">${event.start}</div>
-                                            </div>
-                                        `).join('')
-                                        : '<p style="color: #94a3b8; font-size: 0.9em;">Nenhum evento hoje</p>'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Google Chat Widget
-                if (data.google_chat) {
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">💬 Google Chat</div>
-                            <div class="widget-content">
-                                <div class="metric">
-                                    <span class="metric-label">Atividade em War Room</span>
-                                    <span class="metric-value">${data.google_chat.activity?.has_activity ? '✓ Ativa' : '✗ Inativa'}</span>
-                                </div>
-                                ${data.google_chat.activity?.recent_messages ? `
-                                    <div style="margin-top: 15px; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 15px;">
-                                        <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 10px;">Últimas Mensagens:</p>
-                                        ${data.google_chat.activity.recent_messages.slice(0, 2).map(msg => `
-                                            <div style="padding: 5px 0; font-size: 0.85em;">
-                                                <span style="color: #667eea;">${msg.sender}:</span>
-                                                <span style="color: #cbd5e1;">${msg.text?.substring(0, 50)}...</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Datadog Widget
-                if (data.datadog) {
-                    const alerts = data.datadog.alerts || [];
-                    const errors = data.datadog.errors || [];
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">🔍 Datadog</div>
-                            <div class="widget-content">
-                                <div class="metric">
-                                    <span class="metric-label">Alerts Ativos</span>
-                                    <span class="metric-value" style="color: ${alerts.length > 0 ? '#fca5a5' : '#86efac'};">${alerts.length}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Erros Recentes</span>
-                                    <span class="metric-value" style="color: ${errors.length > 0 ? '#fca5a5' : '#86efac'};">${errors.length}</span>
-                                </div>
-                                ${alerts.length > 0 ? `
-                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.1);">
-                                        ${alerts.slice(0, 2).map(alert => `
-                                            <div style="padding: 5px 0; font-size: 0.85em;">
-                                                <span class="badge badge-danger">${alert.status}</span>
-                                                <span style="color: #cbd5e1;">${alert.name}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                // Dynatrace Widget
-                if (data.dynatrace) {
-                    const alerts = data.dynatrace.alerts || [];
-                    const errors = data.dynatrace.errors || [];
-                    html += `
-                        <div class="widget">
-                            <div class="widget-title">📈 Dynatrace</div>
-                            <div class="widget-content">
-                                <div class="metric">
-                                    <span class="metric-label">Alerts Ativos</span>
-                                    <span class="metric-value" style="color: ${alerts.length > 0 ? '#fca5a5' : '#86efac'};">${alerts.length}</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-label">Erros Críticos</span>
-                                    <span class="metric-value" style="color: ${errors.length > 0 ? '#fca5a5' : '#86efac'};">${errors.length}</span>
-                                </div>
-                                ${alerts.length > 0 ? `
-                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.1);">
-                                        ${alerts.slice(0, 2).map(alert => `
-                                            <div style="padding: 5px 0; font-size: 0.85em;">
-                                                <span class="badge badge-danger">${alert.severity}</span>
-                                                <span style="color: #cbd5e1;">${alert.title}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                document.getElementById('dashboard-loading').style.display = 'none';
-                document.getElementById('dashboard-content').innerHTML = `<div class="dashboard-grid">${html}</div>`;
-                document.getElementById('dashboard-content').style.display = 'block';
-            } catch (error) {
-                console.error('Erro ao carregar dashboard:', error);
-                document.getElementById('dashboard-loading').innerHTML = `
-                    <div style="color: #fca5a5;">
-                        <p>Erro ao carregar dados</p>
-                        <p style="font-size: 0.9em; color: #94a3b8; margin-top: 10px;">${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function loadIntegrations() {
-            try {
-                const response = await fetch(`${API_BASE}/api/v1/integrations`);
-                const integrations = await response.json();
-                
-                let html = '';
-                integrations.forEach(integration => {
-                    html += `
-                        <div class="integration-card">
-                            <h3>${integration.name}</h3>
-                            <p>Tipo: ${integration.type}</p>
-                            <p>Status: ${integration.is_active ? '✓ Ativo' : '✗ Inativo'}</p>
-                            <button class="btn btn-secondary" onclick="editIntegration('${integration.id}')" style="margin-right: 10px;">
-                                Editar
-                            </button>
-                            <button class="btn btn-secondary" onclick="deleteIntegration('${integration.id}')">
-                                Deletar
-                            </button>
-                        </div>
-                    `;
-                });
-                
-                document.getElementById('integrations-list').innerHTML = html;
-            } catch (error) {
-                console.error('Erro ao carregar integrações:', error);
-            }
-        }
-        
-        function openAddIntegrationModal() {
-            document.getElementById('add-integration-modal').classList.add('active');
-        }
-        
-        function closeAddIntegrationModal() {
-            document.getElementById('add-integration-modal').classList.remove('active');
-        }
-        
-        function updateIntegrationForm() {
-            const type = document.getElementById('integration-type').value;
-            let fieldsHtml = '';
+        async function testJiraConnection() {
+            const email = document.getElementById('jira-email').value;
+            const token = document.getElementById('jira-token').value;
+            const site = document.getElementById('jira-site').value;
             
-            const fieldsByType = {
-                'jira': [
-                    { name: 'email', label: 'Email', type: 'email' },
-                    { name: 'site_url', label: 'URL do Site (ex: mysite)', type: 'text' },
-                    { name: 'api_token', label: 'API Token', type: 'password' },
-                    { name: 'space_key', label: 'Project Key', type: 'text' }
-                ],
-                'google_chat': [
-                    { name: 'access_token', label: 'Access Token', type: 'password' },
-                    { name: 'space_id', label: 'Space ID', type: 'text' }
-                ],
-                'gmail': [
-                    { name: 'access_token', label: 'Access Token', type: 'password' }
-                ],
-                'google_calendar': [
-                    { name: 'access_token', label: 'Access Token', type: 'password' }
-                ],
-                'datadog': [
-                    { name: 'api_key', label: 'API Key', type: 'password' },
-                    { name: 'app_key', label: 'App Key', type: 'password' }
-                ],
-                'dynatrace': [
-                    { name: 'api_token', label: 'API Token', type: 'password' },
-                    { name: 'environment_id', label: 'Environment ID', type: 'text' }
-                ]
-            };
-            
-            const fields = fieldsByType[type] || [];
-            fields.forEach(field => {
-                fieldsHtml += `
-                    <div class="form-group">
-                        <label class="form-label">${field.label}</label>
-                        <input type="${field.type}" class="form-input" id="field-${field.name}" placeholder="${field.label}">
-                    </div>
-                `;
-            });
-            
-            document.getElementById('integration-fields').innerHTML = fieldsHtml;
-        }
-        
-        async function saveIntegration() {
-            const type = document.getElementById('integration-type').value;
-            const name = document.getElementById('integration-name').value;
-            
-            if (!type || !name) {
-                alert('Preencha todos os campos obrigatórios');
+            if (!email || !token || !site) {
+                showAlert('jira-alert', 'Preencha todos os campos', 'error');
                 return;
             }
             
-            // Collect credentials
-            const credentials = {};
-            document.querySelectorAll('#integration-fields input').forEach(input => {
-                const fieldName = input.id.replace('field-', '');
-                credentials[fieldName] = input.value;
-            });
-            
             try {
-                const response = await fetch(`${API_BASE}/api/v1/integrations`, {
+                const response = await fetch(`${API_BASE}/api/v1/jira/test-connection`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        name,
-                        type,
-                        credentials
+                        email,
+                        api_token: token,
+                        site_url: site
                     })
                 });
                 
+                const data = await response.json();
+                
                 if (response.ok) {
-                    alert('Integração adicionada com sucesso!');
-                    closeAddIntegrationModal();
-                    loadIntegrations();
-                    loadDashboard();
+                    showAlert('jira-alert', `✓ Conectado como ${data.user}`, 'success');
                 } else {
-                    alert('Erro ao adicionar integração');
+                    showAlert('jira-alert', `✗ Erro: ${data.detail}`, 'error');
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao adicionar integração');
+                showAlert('jira-alert', `✗ Erro: ${error.message}`, 'error');
             }
         }
         
-        async function deleteIntegration(integrationId) {
-            if (!confirm('Tem certeza que deseja deletar esta integração?')) return;
+        function saveJiraConfig() {
+            const config = {
+                email: document.getElementById('jira-email').value,
+                api_token: document.getElementById('jira-token').value,
+                site_url: document.getElementById('jira-site').value,
+                project_key: document.getElementById('jira-project').value
+            };
+            
+            localStorage.setItem('jiraConfig', JSON.stringify(config));
+            jiraConfig = config;
+            showAlert('jira-alert', '✓ Configuração salva com sucesso!', 'success');
+            
+            // Reload dashboard
+            setTimeout(() => {
+                loadDashboard();
+            }, 1000);
+        }
+        
+        async function loadDashboard() {
+            if (!jiraConfig || !jiraConfig.email) {
+                document.getElementById('dashboard-loading').style.display = 'none';
+                document.getElementById('dashboard-alert').innerHTML = `
+                    <div class="alert alert-info">
+                        ℹ️ Configure a integração Jira primeiro. <a href="#" onclick="showContent('jira-config'); return false;" style="color: #93c5fd; text-decoration: underline;">Clique aqui</a>
+                    </div>
+                `;
+                return;
+            }
             
             try {
-                const response = await fetch(`${API_BASE}/api/v1/integrations/${integrationId}`, {
-                    method: 'DELETE'
+                const response = await fetch(`${API_BASE}/api/v1/jira/dashboard`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(jiraConfig)
                 });
                 
-                if (response.ok) {
-                    alert('Integração deletada!');
-                    loadIntegrations();
-                    loadDashboard();
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    renderDashboard(data);
+                } else {
+                    showAlert('dashboard-alert', `✗ Erro ao carregar dados: ${data.message || 'Erro desconhecido'}`, 'error');
+                    document.getElementById('dashboard-loading').style.display = 'none';
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                showAlert('dashboard-alert', `✗ Erro: ${error.message}`, 'error');
+                document.getElementById('dashboard-loading').style.display = 'none';
             }
+        }
+        
+        function renderDashboard(data) {
+            let html = '';
+            
+            // Jira Widget
+            html += `
+                <div class="widget">
+                    <div class="widget-title">📋 Jira Service Manager - ${data.project}</div>
+                    <div class="widget-content">
+                        <div class="metric">
+                            <span class="metric-label">Chamados (Requests)</span>
+                            <span class="metric-value">${data.issues?.total_requests || 0}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Incidentes</span>
+                            <span class="metric-value">${data.issues?.total_incidents || 0}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total de Issues</span>
+                            <span class="metric-value">${data.issues?.total || 0}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Em Risco de SLA</span>
+                            <span class="metric-value" style="color: #fca5a5;">${data.sla_at_risk_count || 0}</span>
+                        </div>
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 15px;">
+                            <div style="color: #94a3b8; font-size: 0.85em; margin-bottom: 10px;">📊 Métricas:</div>
+                            <div class="metric">
+                                <span class="metric-label">Volume Diário</span>
+                                <span class="metric-value">${data.metrics?.daily || 0}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Volume Semanal</span>
+                                <span class="metric-value">${data.metrics?.weekly || 0}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Volume Mensal</span>
+                                <span class="metric-value">${data.metrics?.monthly || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // SLA At Risk Widget
+            if (data.sla_at_risk && data.sla_at_risk.length > 0) {
+                html += `
+                    <div class="widget">
+                        <div class="widget-title">⚠️ Issues em Risco de SLA</div>
+                        <div class="widget-content">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Horas até SLA</th>
+                                            <th>Prioridade</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.sla_at_risk.slice(0, 5).map(issue => `
+                                            <tr>
+                                                <td>${issue.key}</td>
+                                                <td style="color: #fde047;">${issue.hours_until_due}h</td>
+                                                <td>
+                                                    <span class="badge ${
+                                                        issue.priority === 'Highest' ? 'badge-danger' :
+                                                        issue.priority === 'High' ? 'badge-warning' :
+                                                        'badge-success'
+                                                    }">
+                                                        ${issue.priority}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Recent Issues Widget
+            if (data.recent_issues && data.recent_issues.length > 0) {
+                html += `
+                    <div class="widget">
+                        <div class="widget-title">📌 Issues Recentes</div>
+                        <div class="widget-content">
+                            <div class="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Key</th>
+                                            <th>Resumo</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.recent_issues.slice(0, 5).map(issue => `
+                                            <tr>
+                                                <td>${issue.key}</td>
+                                                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${issue.summary}</td>
+                                                <td>
+                                                    <span class="badge ${
+                                                        issue.status === 'Done' ? 'badge-success' :
+                                                        issue.status === 'In Progress' ? 'badge-warning' :
+                                                        'badge-danger'
+                                                    }">
+                                                        ${issue.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('dashboard-loading').style.display = 'none';
+            document.getElementById('dashboard-content').innerHTML = `<div class="dashboard-grid">${html}</div>`;
+            document.getElementById('dashboard-content').style.display = 'block';
+        }
+        
+        function showAlert(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
         }
     </script>
 </body>
