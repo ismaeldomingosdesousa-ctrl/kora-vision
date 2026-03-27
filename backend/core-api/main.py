@@ -9,6 +9,7 @@ import logging
 from shared.config import settings
 from shared.database import get_db, health_check
 from shared.auth import get_current_user
+from jira_endpoints import router as jira_router
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,9 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+# Include routers
+app.include_router(jira_router)
 
 
 # ============================================================================
