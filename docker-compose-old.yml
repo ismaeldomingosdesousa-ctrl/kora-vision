@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # PostgreSQL Database
   postgres:
@@ -119,7 +121,7 @@ services:
   # Frontend (React)
   frontend:
     build:
-      context: ./frontend
+      context: ./unified-ops-hub-frontend
       dockerfile: Dockerfile
     container_name: kora-vision-frontend
     ports:
@@ -130,7 +132,7 @@ services:
     depends_on:
       - core-api
     volumes:
-      - ./frontend:/app
+      - ./unified-ops-hub-frontend:/app
 
 volumes:
   postgres_data:
