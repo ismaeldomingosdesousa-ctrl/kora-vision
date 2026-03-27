@@ -1,6 +1,6 @@
 """Database connection and session management."""
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool, QueuePool
 from typing import AsyncGenerator
@@ -50,7 +50,7 @@ async def set_tenant_context(session: AsyncSession, tenant_id: str) -> None:
     """Set tenant context for RLS policies."""
 
     await session.execute(
-        f"SET app.current_tenant_id = '{tenant_id}'"
+        text(f"SET app.current_tenant_id = '{tenant_id}'")
     )
 
 
@@ -59,7 +59,7 @@ async def health_check() -> bool:
 
     try:
         async with AsyncSessionLocal() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
             return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
