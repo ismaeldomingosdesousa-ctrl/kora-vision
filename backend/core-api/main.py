@@ -6,23 +6,12 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-import sys
-import os
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from shared.config import settings
 from shared.database import get_db, health_check
 from shared.auth import get_current_user
-
-try:
-    from core_api.jira_endpoints import router as jira_router
-except ImportError:
-    try:
-        from jira_endpoints import router as jira_router
-    except ImportError:
-        jira_router = None
+from shared.jira_integration import JiraCloudIntegration
+from pydantic import BaseModel
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +56,136 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-# Include routers
-if jira_router:
-    app.include_router(jira_router)
+# ============================================================================
+# Jira Models
+# ============================================================================
+
+class JiraConfig(BaseModel):
+    """Configuração do Jira"""
+    email: str
+    api_token: str
+    site_url: str
+    project_key: Optional[str] = None
+
+
+class JiraTestRequest(BaseModel):
+    """Request para testar conexão"""
+    email: str
+    api_token: str
+    site_url: str
+
+
+# ============================================================================
+# Jira Endpoints
+# ============================================================================
+
+@app.post("/api/v1/jira/test-connection", tags=["Jira"])
+async def test_jira_connection(request: JiraTestRequest):
+    """Testa conexão com Jira"""
+    try:
+        jira = JiraCloudIntegration(
+            email=request.email,
+            api_token=request.api_token,
+            site_url=request.site_url
+        )
+        
+        result = jira.test_connection()
+        
+        if result.get('success'):
+            return {
+                "success": True,
+                "message": result.get('message'),
+                "user": result.get('user')
+            }
+        else:
+            raise HTTPException(status_code=401, detail=result.get('message'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/jira/dashboard", tags=["Jira"])
+async def get_jira_dashboard(config: JiraConfig):
+    """Retorna dados do dashboard Jira"""
+    try:
+        jira = JiraCloudIntegration(
+            email=config.email,
+            api_token=config.api_token,
+            site_url=config.site_url
+        )
+        
+        project_key = config.project_key or "CLOUDOPS"
+        data = jira.get_dashboard_data(project_key)
+        
+        if data.get('success'):
+            return data
+        else:
+            raise HTTPException(status_code=500, detail=data.get('message'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/jira/issues", tags=["Jira"])
+async def get_jira_issues(config: JiraConfig, issue_type: Optional[str] = None):
+    """Retorna issues de um projeto"""
+    try:
+        jira = JiraCloudIntegration(
+            email=config.email,
+            api_token=config.api_token,
+            site_url=config.site_url
+        )
+        
+        project_key = config.project_key or "CLOUDOPS"
+        data = jira.get_issues(project_key, issue_type)
+        
+        if data.get('success'):
+            return data
+        else:
+            raise HTTPException(status_code=500, detail=data.get('message'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/jira/metrics", tags=["Jira"])
+async def get_jira_metrics(config: JiraConfig):
+    """Retorna métricas do projeto"""
+    try:
+        jira = JiraCloudIntegration(
+            email=config.email,
+            api_token=config.api_token,
+            site_url=config.site_url
+        )
+        
+        project_key = config.project_key or "CLOUDOPS"
+        data = jira.get_metrics(project_key)
+        
+        if data.get('success'):
+            return data
+        else:
+            raise HTTPException(status_code=500, detail=data.get('message'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v1/jira/sla-at-risk", tags=["Jira"])
+async def get_jira_sla_at_risk(config: JiraConfig):
+    """Retorna issues em risco de SLA"""
+    try:
+        jira = JiraCloudIntegration(
+            email=config.email,
+            api_token=config.api_token,
+            site_url=config.site_url
+        )
+        
+        project_key = config.project_key or "CLOUDOPS"
+        data = jira.get_sla_at_risk(project_key)
+        
+        return {
+            "success": True,
+            "sla_at_risk": data,
+            "count": len(data)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
