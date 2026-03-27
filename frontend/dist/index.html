@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kora Vision - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * {
             margin: 0;
@@ -17,88 +18,200 @@
                 sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            background: #f8fafc;
+        }
+        
+        .sidebar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 250px;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 60px 40px;
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 2.5em;
+            padding: 20px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
         
         .logo {
-            font-size: 4em;
-            margin-bottom: 20px;
-        }
-        
-        p {
-            color: #666;
-            font-size: 1.1em;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        
-        .status {
-            background: #f0f9ff;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 30px 0;
-            border-radius: 8px;
-            text-align: left;
-        }
-        
-        .status h3 {
-            color: #667eea;
+            font-size: 2em;
             margin-bottom: 10px;
         }
         
-        .status-item {
+        .logo-text {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        
+        .nav-item {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: white;
+        }
+        
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-left-color: white;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 1.8em;
+        }
+        
+        .user-info {
             display: flex;
             align-items: center;
-            margin: 8px 0;
+            gap: 15px;
+        }
+        
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .card-title {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+        
+        .card-value {
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .card-subtitle {
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        
+        .table-title {
+            color: #333;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            color: #667eea;
+            font-weight: bold;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
             color: #555;
         }
         
-        .status-item::before {
-            content: "✓";
-            color: #10b981;
-            font-weight: bold;
-            margin-right: 10px;
-            font-size: 1.2em;
+        tr:hover {
+            background: #f8fafc;
         }
         
-        .links {
-            margin-top: 30px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .badge-error {
+            background: #fee2e2;
+            color: #991b1b;
         }
         
         .btn {
             display: inline-block;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
-            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
         }
         
         .btn-primary {
@@ -112,49 +225,311 @@
         }
         
         .btn-secondary {
-            background: #f0f0f0;
+            background: #e2e8f0;
             color: #333;
-            border: 2px solid #ddd;
         }
         
         .btn-secondary:hover {
-            background: #e8e8e8;
-            border-color: #999;
+            background: #cbd5e1;
         }
         
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-label {
             color: #999;
             font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .content-hidden {
+            display: none;
+        }
+        
+        .content-visible {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
         <div class="logo">🚀</div>
-        <h1>Kora Vision</h1>
-        <p>Plataforma de Operações Unificadas</p>
+        <div class="logo-text">Kora Vision</div>
         
-        <div class="status">
-            <h3>Status do Sistema</h3>
-            <div class="status-item">Frontend: Rodando</div>
-            <div class="status-item">API Core: Rodando</div>
-            <div class="status-item">Banco de Dados: Conectado</div>
-            <div class="status-item">Cache Redis: Ativo</div>
+        <div class="nav-item active" onclick="showContent('dashboard')">
+            📊 Dashboard
         </div>
-        
-        <p>O Kora Vision está pronto para uso! Acesse a API para começar.</p>
-        
-        <div class="links">
-            <a href="http://localhost:8000/docs" class="btn btn-primary">📚 Documentação da API</a>
-            <a href="http://localhost:8000/redoc" class="btn btn-secondary">📖 ReDoc</a>
+        <div class="nav-item" onclick="showContent('operations')">
+            ⚙️ Operações
         </div>
-        
-        <div class="footer">
-            <p>Kora Vision v1.0.0 | Todos os serviços operacionais</p>
+        <div class="nav-item" onclick="showContent('integrations')">
+            🔗 Integrações
+        </div>
+        <div class="nav-item" onclick="showContent('users')">
+            👥 Usuários
+        </div>
+        <div class="nav-item" onclick="showContent('webhooks')">
+            🪝 Webhooks
+        </div>
+        <div class="nav-item" onclick="showContent('settings')">
+            ⚙️ Configurações
         </div>
     </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <h1>Kora Vision</h1>
+            <div class="user-info">
+                <span>Admin</span>
+                <div class="avatar">A</div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Content -->
+        <div id="dashboard" class="content-visible">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Dashboard</h2>
+            
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Operações Ativas</div>
+                    <div class="stat-value">24</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Usuários</div>
+                    <div class="stat-value">156</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Integrações</div>
+                    <div class="stat-value">12</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Webhooks</div>
+                    <div class="stat-value">8</div>
+                </div>
+            </div>
+            
+            <!-- Recent Operations -->
+            <div class="table-container">
+                <div class="table-title">Operações Recentes</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#001</td>
+                            <td>Sincronizar Dados</td>
+                            <td><span class="badge badge-success">Concluído</span></td>
+                            <td>Alta</td>
+                            <td>27/03/2026 22:30</td>
+                        </tr>
+                        <tr>
+                            <td>#002</td>
+                            <td>Processar Webhooks</td>
+                            <td><span class="badge badge-success">Concluído</span></td>
+                            <td>Média</td>
+                            <td>27/03/2026 22:25</td>
+                        </tr>
+                        <tr>
+                            <td>#003</td>
+                            <td>Validar Integrações</td>
+                            <td><span class="badge badge-pending">Pendente</span></td>
+                            <td>Alta</td>
+                            <td>27/03/2026 22:20</td>
+                        </tr>
+                        <tr>
+                            <td>#004</td>
+                            <td>Backup de Dados</td>
+                            <td><span class="badge badge-success">Concluído</span></td>
+                            <td>Baixa</td>
+                            <td>27/03/2026 22:15</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Operations Content -->
+        <div id="operations" class="content-hidden">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Operações</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Nova Operação</div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Criar Operação</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Operações Ativas</div>
+                    <div class="card-value">24</div>
+                    <div class="card-subtitle">Últimas 24 horas</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Taxa de Sucesso</div>
+                    <div class="card-value">98.5%</div>
+                    <div class="card-subtitle">Média geral</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Integrations Content -->
+        <div id="integrations" class="content-hidden">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Integrações</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Salesforce</div>
+                    <div class="card-subtitle">✅ Conectado</div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Configurar</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">HubSpot</div>
+                    <div class="card-subtitle">✅ Conectado</div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Configurar</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Slack</div>
+                    <div class="card-subtitle">✅ Conectado</div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Configurar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users Content -->
+        <div id="users" class="content-hidden">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Usuários</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Função</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Admin</td>
+                            <td>admin@koravision.com</td>
+                            <td>Administrador</td>
+                            <td><span class="badge badge-success">Ativo</span></td>
+                        </tr>
+                        <tr>
+                            <td>João Silva</td>
+                            <td>joao@koravision.com</td>
+                            <td>Operador</td>
+                            <td><span class="badge badge-success">Ativo</span></td>
+                        </tr>
+                        <tr>
+                            <td>Maria Santos</td>
+                            <td>maria@koravision.com</td>
+                            <td>Analista</td>
+                            <td><span class="badge badge-success">Ativo</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Webhooks Content -->
+        <div id="webhooks" class="content-hidden">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Webhooks</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Evento</th>
+                            <th>Status</th>
+                            <th>Última Execução</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>https://api.example.com/webhook</td>
+                            <td>operation.created</td>
+                            <td><span class="badge badge-success">Ativo</span></td>
+                            <td>27/03/2026 22:30</td>
+                        </tr>
+                        <tr>
+                            <td>https://api.example.com/sync</td>
+                            <td>operation.completed</td>
+                            <td><span class="badge badge-success">Ativo</span></td>
+                            <td>27/03/2026 22:25</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Settings Content -->
+        <div id="settings" class="content-hidden">
+            <h2 style="color: #333; font-size: 1.5em; margin-bottom: 20px;">Configurações</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">Preferências Gerais</div>
+                    <div class="card-subtitle">Tema, idioma e notificações</div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Editar</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Segurança</div>
+                    <div class="card-subtitle">Senhas e autenticação</div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Editar</button>
+                </div>
+                <div class="card">
+                    <div class="card-title">Sobre</div>
+                    <div class="card-subtitle">Kora Vision v1.0.0</div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Mais Info</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showContent(contentId) {
+            // Hide all content
+            document.querySelectorAll('[id^="dashboard"], [id^="operations"], [id^="integrations"], [id^="users"], [id^="webhooks"], [id^="settings"]').forEach(el => {
+                if (el.id === contentId) {
+                    el.classList.remove('content-hidden');
+                    el.classList.add('content-visible');
+                } else {
+                    el.classList.add('content-hidden');
+                    el.classList.remove('content-visible');
+                }
+            });
+            
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+    </script>
 </body>
 </html>
