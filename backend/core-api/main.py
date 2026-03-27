@@ -6,10 +6,23 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
+import sys
+import os
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from shared.config import settings
 from shared.database import get_db, health_check
 from shared.auth import get_current_user
-from jira_endpoints import router as jira_router
+
+try:
+    from core_api.jira_endpoints import router as jira_router
+except ImportError:
+    try:
+        from jira_endpoints import router as jira_router
+    except ImportError:
+        jira_router = None
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +68,8 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(jira_router)
+if jira_router:
+    app.include_router(jira_router)
 
 
 # ============================================================================
