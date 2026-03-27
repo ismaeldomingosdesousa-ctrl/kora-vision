@@ -1,10 +1,10 @@
 """Authentication and JWT utilities."""
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, NamedTuple
 from uuid import UUID
 import logging
 
@@ -12,6 +12,13 @@ from .config import settings
 from .schemas.user import CurrentUser
 
 logger = logging.getLogger(__name__)
+
+
+# Define HTTPAuthCredentials locally since it's not in fastapi.security
+class HTTPAuthCredentials(NamedTuple):
+    scheme: str
+    credentials: str
+
 
 security = HTTPBearer()
 
