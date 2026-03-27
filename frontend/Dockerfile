@@ -40,5 +40,5 @@ COPY --from=builder /app/dist ./dist
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["pnpm", "start"]
+# Start the application (serve static build)
+CMD ["npx", "serve", "-s", "dist", "-l", "3000"]
